@@ -5,6 +5,10 @@ schema:
   schema_id: rime_mint
   name: 薄荷拼音-全拼输入
   version: "24.11.11"
+  icon: "zh.ico"
+  ascii_icon: "en.ico"
+  half_icon: "half.ico"
+  full_icon: "full.ico"
   author:
     - mintimate < @Mintimate|https://www.mintimate.cn >
   description: |
@@ -17,9 +21,9 @@ schema:
       * opencc - 開放中文轉換
   dependencies:
     - radical_pinyin # 参考 https://github.com/mirtlecn/rime-radical-pinyin
-    - wubi98_mint # 98五笔库 https://github.com/yanhuacuo/98wubi-tables
     - stroke
     - melt_eng # 英文方案
+    - english_abbr # 英文辅音简写棱镜（复用 melt_eng 词库源）
     
 switches:
   - name: ascii_mode
@@ -27,6 +31,9 @@ switches:
     states: [ 中文, 英文 ]
   - name: emoji_suggestion
     states: [ "😣️","😁️"]
+    reset: 1
+  - name: emoji_mode_enabled
+    states: [ 关闭, 开启 ]
     reset: 1
   - name: full_shape
     states: [ 半角, 全角 ]
@@ -43,21 +50,38 @@ switches:
     
 engine:
   processors:
+    - lua_processor@*tab_mode_hotkey              # Ctrl+Shift+A/Z/F/L/E/B：将当前全拼带入筛选模式
+    - lua_processor@*candidate_detail_commit_processor # =：将当前侧窗详情正文直接上屏
+    - lua_processor@*transcription_hotkey         # Ctrl+Shift+T：切换简繁并消费整个按键序列
+    - lua_processor@*repeat_history_processor     # h+Tab 查看历史，i+Tab 重复上次上屏
+    - lua_processor@*tab_prefix_processor         # Tab 引导功能前缀转换
+    - lua_processor@*hot_slot_processor           # 固定候选宏上屏需先于数字选词处理器
     - lua_processor@*kp_number_processor
     - lua_processor@*select_character
     - lua_processor@*codeLengthLimit_processor     # 使用Lua限制输入内容的最大长度(防止过长而卡顿)
     - ascii_composer                               # ※ 處理西文模式及中西文切換
+    - lua_processor@*date_select_processor         # 先处理模式选词，避免 recognizer 将 a~e 吞作编码
+    - lua_processor@*lpr_select_processor          # LPR / V 模式 a~e 选词及运算符
     - recognizer                                   # ※ 與 matcher 搭配，處理符合特定規則的輸入碼，如網址、反查等
     - key_binder                                   # ※ 在特定條件下將按鍵綁定到其他按鍵，如重定義逗號、句號爲候選翻頁鍵
+    - lua_processor@*law_select_processor          # d+数字模式下使用 a/b/c/d/e 选词
+    - lua_processor@*anyou_processor               # 民事案由 A 模式动态竖排布局处理器
+    - lua_processor@*zuiming_processor             # 刑法罪名 Z 模式动态竖排布局处理器
+    - lua_processor@*fayuan_processor              # 全国人民法院 F 模式动态竖排布局处理器
+    - lua_processor@*falv_processor               # 国家法律 G 模式动态竖排与候选详情处理器
+    - lua_processor@*legal_search_processor       # 综合检索动态竖排与分类详情
+    - lua_processor@*llm_trigger_processor        # 普通字母输入的 Tab AI 候选 fallback（全部特殊处理器之后）
     - speller
     - punctuator
     - selector
     - navigator
     - express_editor
   segmentors:
+    - affix_segmentor@english_filter
+    - affix_segmentor@emoji
     - ascii_segmentor                                    # 標識西文段落
     - matcher                                            # 標識符合特定規則的段落，如網址、反查等
-    - affix_segmentor@wubi98_mint
+    # - affix_segmentor@wubi98_mint
     - affix_segmentor@radical_reverse_lookup
     - affix_segmentor@stroke
     - affix_segmentor@unicode
@@ -65,29 +89,66 @@ engine:
     - punct_segmentor                                    # 標識句讀段落
     - fallback_segmentor                                 # 標識其他未標識段落
   translators:
+    - table_translator@english_filter
+    - lua_translator@*emoji_initial_translator
+    - lua_translator@*repeat_history_translator   # h+Tab 历史候选
+    - script_translator@emoji
     - punct_translator                                   # ※ 轉換標點符號
     - script_translator
     - lua_translator@*unicode_translator                # Unicode 编码候选
     - lua_translator@*shijian                            # 时间、日期、星期、月份、问候、节气、节日，N模式
     - lua_translator@*number_translator                  # 金额大小写
     - lua_translator@*chineseLunarCalendar_translator    # 农历
-    - lua_translator@*mint_calculator_translator         # 计算器（lua 动态表达式）
+    - lua_translator@*v_expression_translator            # v+Tab 数字大写、金额转换与计算器
+    - lua_translator@*lpr                                # LPR 查询与自动更新（lpr+Tab 触发）
+    - lua_translator@*anyou                              # 民事案由筛选（a+Tab 触发）
+    - lua_translator@*zuiming                            # 刑法罪名筛选（z+Tab 触发）
+    - lua_translator@*legal_search_translator           # 法院/案由/罪名/法律综合检索（f+Tab）
+    - lua_translator@*fayuan                             # 全国人民法院筛选（f+Tab 触发）
+    - lua_translator@*falv                              # 国家法律文件检索（l+Tab 触发）
+    - lua_translator@*date_calculator                    # 日期计算（r+Tab 触发）
+    - lua_translator@*fenshu_translator                   # 文本份数（ys/yu+Tab 触发）
     - table_translator@melt_eng                          # 英文输入（作为子翻译器，优先级需要比原生的低）
     - table_translator@cn_en                             # 中英混合词汇
     - reverse_lookup_translator@radical_reverse_lookup
-    - reverse_lookup_translator@wubi98_mint
+    # - reverse_lookup_translator@wubi98_mint
     - reverse_lookup_translator@stroke
     - lua_translator@*force_gc
     # - reverse_lookup_translator                   # 反查模块，多标签情况下去除
     # - echo_translator                             # ※ 没有候选词，返回字符
   filters:
+    - lua_filter@*english_mode_filter
+    - simplifier@emoji_mode
+    - lua_filter@*emoji_only_filter
     - lua_filter@*corrector_filter               # 错音错字提示
     - lua_filter@*super_preedit                  # 输入码显示全拼并带上音调
     - lua_filter@*autocap_filter                 # 英文自动大写
+    - lua_filter@*hot_slot_filter                # 全拼个人词库固定候选位与热加载滤镜（位于简繁转换前）
     - simplifier@emoji_suggestion
     - simplifier@transcription_cc
     - lua_filter@*reduce_english_filter          # 将部分英文候选调整到指定位置
     - uniquifier                                 # 去重
+
+# LLM Tab fallback。密钥只从用户环境变量读取，不放入方案文件。
+llm:
+  enabled: true
+  base_url: ""
+  api_key_env: "WEASEL_LLM_API_KEY"
+  model: ""
+  input_scheme: auto
+  context_enabled: true
+  context_chars: 500
+  boundary_search_chars: 100
+  candidate_count: 5
+  timeout_ms: 3000
+  ai_comment:
+    enabled: true
+    text: "✦ AI"
+  cache:
+    enabled: true
+    ttl_seconds: 300
+    max_entries: 500
+  debug_log_context: false
 
 #shijian:仅仅作为提示使用，编码已经写死，引导键可以在key_binder下修改前缀
 #时间：osj 或者 /sj
@@ -168,6 +229,21 @@ emoji_suggestion:
   tips: all
   inherit_comment: false
 
+emoji_mode:
+  opencc_config: emoji.json
+  option_name: emoji_mode_enabled
+  tags: [emoji]
+  tips: all
+  inherit_comment: false
+
+emoji:
+  tag: emoji
+  dictionary: rime_mint
+  enable_user_dict: false
+  enable_sentence: false
+  prefix: "B"
+  tips: 〔Emoji表情〕
+
 # Lua 配置: 将部分英文候选调整到指定位置。
 # 详细介绍 https://dvel.me/posts/make-rime-en-better/#短单词置顶的问题
 # 万象高词频下，英文可能被压到较后位置
@@ -219,7 +295,18 @@ translator:
     - xform/([nl])ue/$1üe/
     - xform/([jqxy])v/$1u/
   initial_quality: 1.2
-  enable_user_dict: true         # 开启用户词典，根据用户输入调频（默认开启，此处再次声明）
+  # 学习仅作用于普通 script_translator 候选；不改变方案、固定候选和功能模式的优先级。
+  enable_user_dict: true         # 记录已选词的词频并用于后续调频
+  enable_encoder: true           # 将连续上屏的词语自动编码，形成可复用的用户词
+  enable_sentence: true          # 允许普通输入的组句候选参与学习
+  encode_commit_history: true    # 将上屏历史写入用户词典，供后续候选命中
+
+# 全拼固定候选位与热加载配置
+hot_slot_filter:
+  file: dicts/quanpin/custom_hot_slot.txt
+  check_interval: 1
+  deduplicate: true
+  enable_comments: false
 
 melt_eng:
   dictionary: melt_eng           # 英文词典
@@ -343,13 +430,13 @@ speller:
     - derive/([qwrtypsdfghjklzxcbnm])([aeio])ng$/$1ng/ # lng → lang、leng、ling、long
     - derive/un$/ong/                  # yuntong = yongtong
 
-wubi98_mint:
-  tag: wubi98_mint
-  dictionary: wubi98_mint
-  enable_user_dict: false
-  enable_completion: true
-  prefix: "Uw"
-  tips: 〔五笔〕
+# wubi98_mint:
+#   tag: wubi98_mint
+#   dictionary: wubi98_mint
+#   enable_user_dict: false
+#   enable_completion: true
+#   prefix: "Uw"
+#   tips: 〔五笔〕
   
 stroke:
   tag: stroke
@@ -376,12 +463,23 @@ unicode:
   tips: 〔Unicode〕
   
 reverse_lookup:
-  tags: [wubi98_mint,stroke,radical_lookup]
+  tags: [stroke,radical_lookup]
   overwrite_comment: true
   dictionary: rime_mint
   
 punctuator:
   import_preset: symbols
+  full_shape:
+    "=": { commit: "=" }
+    "/": { commit: "、" }
+    '\': { commit: "、" }
+    "|": { commit: "|" }
+    "'": { pair: [ '“', '”' ] }
+    '"': { pair: [ '‘', '’' ] }
+    "[": { commit: "【" }
+    "]": { commit: "】" }
+    "<": { commit: "《" }
+    ">": { commit: "》" }
   # 定义部分半角字符
   half_shape:
       "#": "#"
@@ -390,31 +488,99 @@ punctuator:
       "`": "`"
       "~": "~"
       "@": "@"
-      "=": "="
-      "/": ["/", "÷",]
-      '\': "、"
+      "=": { commit: "=" }
+      "/": { commit: "、" }
+      '\': { commit: "、" }
       "_" : "──"
-      "'": {pair: ["「", "」"]}
-      "[": ["【", "["]
-      "]": ["】", "]"]
+      "'": { pair: [ '“', '”' ] }
+      '"': { pair: [ '‘', '’' ] }
+      "[": { commit: "【" }
+      "]": { commit: "】" }
       "$": ["¥", "$", "€", "£", "¢", "¤"]
-      "<": ["《", "〈", "«", "<"]
-      ">": ["》", "〉", "»", ">"]
+      "<": { commit: "《" }
+      ">": { commit: "》" }
     
 # 反查映射
 recognizer:
   import_preset: default
   patterns:
+    emoji: "^B[a-z]*'?$"
     unicode: "^Uc[a-z]*'?$"
+    english_filter: "^E[a-z]*$"
     url: "^[a-z]+[.].+$"
     punct: "^/([0-9]0?|[a-zA-Z]+)$"
-    wubi98_mint: "Uw[a-z]*'?$"
+    # wubi98_mint: "Uw[a-z]*'?$"
     stroke: "Ui[a-z]*'?$"
     radical_lookup: "Uu[a-z]*'?$"
-    rmb: "^R[0-9]+[.]?[0-9]*"        # 响应 lua_translator@number_translator 脚本将自动获取第 2 个字符作为触发前缀
-    expression: "^=.*$"              # 响应 lua_translator@expression_translator 脚本将自动获取第 2 个字符作为触发前缀
+    history: "^H$"                               # h+Tab 输入历史候选
+    calc_or_number: "^V.*$"          # 响应 lua_translator@v_expression_translator（v+Tab 触发）
+    date_calc: "^R.*$"               # 响应 lua_translator@date_calculator（r+Tab 触发）
+    rmb: "^[Rr][0-9]+[.]?[0-9]*"     # 金额数字：r12（兼容 R12）
+    law_article: "^[Dd][0-9]+[.]?[0-9]*[.]?[0-9]*$"  # d12、d12.3、d12.3.1、d12..1
+    law_unit: "^[Dd][0-9]+([vjkxytz]|zh)$"            # 章(v/z/zh)、节(j)、款(k)、项(x)、页(y)、条(t)
+    # expression: "^=.*$"              # 已关闭 = 引导表达式计算，保证 = 直接输出              # 响应 lua_translator@expression_translator 脚本将自动获取第 2 个字符作为触发前缀
     gregorian_to_lunar: "^N[0-9]{1,8}"  # 响应 lua_translator@Chinese_lunar_calendar 公历转农历，输入 N20240115 得到「二〇二四年腊月初五」，脚本将自动获取第 2 个字符作为触发前缀
+    lpr: "^L.*$"                     # 响应 lua_translator@lpr（lpr+Tab 触发）
+    anyou: "^A.*$"                   # 响应 lua_translator@anyou（a+Tab 触发）
+    zuiming: "^Z.*$"                 # 响应 lua_translator@zuiming（z+Tab 触发）
+    fayuan: "^F.*$"                  # 响应 lua_translator@fayuan（f+Tab 触发）
+    falv: "^G.*$"                   # 响应 lua_translator@falv（l+Tab 触发）
+    fenshu: "^Ys.*$"                 # 响应 lua_translator@fenshu_translator（ys/yu+Tab 触发）
     uppercase: ""  # 覆写默认的 uppercase 使其可以在输入大写后，输入数字
+
+anyou:
+  pinyin_type: quanpin
+
+zuiming:
+  pinyin_type: quanpin
+
+fayuan:
+  pinyin_type: quanpin
+
+legal_search:
+  pinyin_type: quanpin
+
+falv:
+  pinyin_type: quanpin
+  detail_width: 360                 # 法律查询侧窗；未设置的模式继续使用全局宽度
+
+english_filter:
+  tag: english_filter
+  dictionary: english_abbr
+  enable_sentence: false
+  enable_completion: true
+  enable_user_dict: false
+  initial_quality: 2.0
+  prefix: "E"
+  tips: 〔英文辅音简写〕
+
+history:
+  tag: history
+  tips: 〔输入历史〕
+
+# Tab 功能模式开关。enabled 为总开关；其余键对应实际输入的触发码。
+# 在 *.custom.yaml 中覆盖为 false 即可关闭，无需删除处理器或翻译器。
+tab_mode_switches:
+  enabled: true
+  english: true # e + Tab / Ctrl+Shift+E 英文补全
+  e: true       # 兼容旧配置；英文模式由 english 开关控制
+  f: true       # f + Tab / Ctrl+Shift+F 法律综合检索
+  v: true       # v + Tab 或 V 数字、金额、计算器
+  history: true  # h/i + Tab 输入历史与重复上次输出
+  b: true       # Emoji 的 b + Tab 入口
+  l: false      # 关闭 l + Tab 旧入口
+  z: false      # 关闭 z + Tab 罪名入口
+  a: false      # 关闭 a/ay + Tab 案由入口
+  lpr: false    # 关闭 l/lpr + Tab LPR 入口
+  r: false      # 关闭 r/rq + Tab 日期入口
+  rf: false     # 关闭 rf + Tab 法定顺延入口
+  u: true       # u + Tab 拆字入口
+  ys: false     # 关闭 ys/yu + Tab 文本份数入口
+
+# 候选窗默认显示实际键入的触发码；如需自定义，可按触发码覆盖：
+# tab_mode_display:
+#   l: law
+#   z: crime
 
 
 key_binder:
@@ -422,7 +588,6 @@ key_binder:
   # Lua 配置: shijian.lua 的引导符，涉及：日期、时间、节日、节气、生日、问候模板等功能
   shijian_keys: ["o"]
   bindings:
-    - {accept: "Control+Shift+E", toggle: emoji_suggestion, when: always}   # Emoji 快捷键
     - {accept: "Control+Shift+1", toggle: transcription, when: has_menu}           # 当存在候选菜单时，可以切换简体和繁体
     - {accept: "Control+Shift+exclam", toggle: transcription, when: has_menu}      # 当存在候选菜单时，可以切换简体和繁体（小狼毫可能读取这个）
 
@@ -430,7 +595,3 @@ key_binder:
 menu:
   # 候选词个数
   page_size: 6
-
-
-
-

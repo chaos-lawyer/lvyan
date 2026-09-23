@@ -1,0 +1,12 @@
+customization:
+  distribution_code_name: Weasel
+  distribution_version: 0.17.4
+  generator: "Rime::SwitcherSettings"
+  modified_time: "Mon Sep 21 10:45:18 2026"
+  rime_version: 1.17.0
+patch:
+  schema_list:
+    - {schema: double_pinyin_flypy}
+    - {schema: rime_mint}
+    # 仅用于构建 english_abbr.prism；日常无需切换到此方案。
+    - {schema: english_abbr}

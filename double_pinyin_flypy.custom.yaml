@@ -1,0 +1,67 @@
+# Rime custom settings
+# encoding: utf-8
+
+patch:
+  # 锁定单页候选数量为 5
+  "menu/page_size": 5
+
+  # 取消数字金额大写功能的按键
+  "recognizer/patterns/rmb": ""
+
+  # 取消计算器功能的按键，保证 = 直接输入
+  "recognizer/patterns/expression": ""
+
+  # 保留 u+Tab 所需的拆字识别规则，其余反查入口继续关闭。
+  "recognizer/patterns/radical_lookup": "^U[a-z]*'?$"
+  "recognizer/patterns/wubi98_mint": ""
+  "recognizer/patterns/stroke": ""
+  "recognizer/patterns/unicode": ""
+
+  # 禁用原薄荷内置的时间、日期、农历、大写N日期等触发
+  "recognizer/patterns/gregorian_to_lunar": ""
+  "key_binder/shijian_keys": []
+
+  # 双拼输入时不转换为全拼，直接显示敲击的编码
+  "translator/preedit_format": []
+
+  # Shift+[ 映射为 〔，Shift+] 映射为 〕
+  "punctuator/half_shape/{": { commit: "〔" }
+  "punctuator/half_shape/}": { commit: "〕" }
+  "punctuator/full_shape/{": { commit: "〔" }
+  "punctuator/full_shape/}": { commit: "〕" }
+
+  # Shift+4 映射为 ¥（中文模式下为 ¥，英文模式下为 $）
+  "punctuator/half_shape/$": "¥"
+  "punctuator/full_shape/$": "¥"
+
+  # Shift+5 映射为纯 %
+  "punctuator/half_shape/%": "%"
+  "punctuator/full_shape/%": "%"
+
+  # 全角模式下，双引号映射为「」，单引号映射为『』
+  "punctuator/full_shape/\"": { pair: [ "「", "」" ] }
+  "punctuator/full_shape/'": { pair: [ "『", "』" ] }
+
+  # 状态切换提示与托盘图标
+  "schema/icon": "zh.ico"
+  "schema/ascii_icon": "en.ico"
+  "schema/half_icon": "half.ico"
+  "schema/full_icon": "full.ico"
+
+  # 布局感知的候选词导航与翻页（方案级回退保障）
+  dynamic_layout:
+    navigation:
+      enabled: true
+      horizontal:
+        previous_candidate: Control+Left
+        next_candidate: Control+Right
+        previous_page: Up
+        next_page: Down
+      vertical:
+        previous_candidate: Up
+        next_candidate: Down
+        previous_page: Control+Left
+        next_page: Control+Right
+
+
+

@@ -1,0 +1,49 @@
+# Rime schema
+# encoding: utf-8
+#
+# Build-only prism for the English abbreviation translator. It imports the
+# existing melt_eng source tables and never needs to be selected for typing.
+
+schema:
+  schema_id: english_abbr
+  name: English consonant abbreviations
+  version: "1.0"
+  description: "English with complete spelling and finite consonant skeletons"
+
+engine:
+  processors:
+    - ascii_composer
+    - speller
+    - recognizer
+    - selector
+    - navigator
+    - express_editor
+  segmentors:
+    - matcher
+    - ascii_segmentor
+    - abc_segmentor
+    - fallback_segmentor
+  translators:
+    - table_translator
+
+speller:
+  alphabet: abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ
+  delimiter: " '"
+  algebra:
+    # Protect an initial vowel, then derive a single consonant skeleton.
+    # The original full spelling remains; no exponential partial variants exist.
+    - xform/^a/!/
+    - xform/^e/@/
+    - xform/^i/,/
+    - xform/^o/:/
+    - xform/^u/;/
+    - derive/[aeiou]//
+    - xlit/!@,:;/aeiou/
+    - erase/^.$/
+
+translator:
+  dictionary: english_abbr
+  enable_sentence: false
+  enable_user_dict: false
+  enable_completion: true
+  spelling_hints: 9

@@ -20,8 +20,11 @@ app_options:
     inline_preedit: true # 兼容 Yandex
 
 # [global settings]
-show_notifications: true                   # 是否显示状态变化的通知：true；false；option_list（方案内的开头 option）
-show_notifications_time: 1200              # 通知显示的时间，单位 ms
+show_notifications:
+  - ascii_mode
+  - full_shape
+  - transcription
+show_notifications_time: 800               # 通知显示的时间，单位 ms
 global_ascii: false                        # 切换为 ascii 模式时，是否影响所有窗口：true；false
 # [End of <global settings>]
 
@@ -34,7 +37,7 @@ style:
   # 全局字体
   # 格式：字体1:起始码位:结束码位:字重:字形,字体2……，字体会依次 fallback
   # 详细设定请参考 <https://github.com/rime/weasel/wiki/字體設定>
-  font_face: "Segoe UI Emoji:30:39, Segoe UI Emoji:23:23, Segoe UI Emoji:2a:2a, Segoe UI Emoji:fe0f:fe0f, Segoe UI Emoji:20e3:20e3, Microsoft YaHei, SF Pro, Segoe UI Emoji, Noto Color Emoji"
+  font_face: "Segoe UI Emoji:23:23, Segoe UI Emoji:2a:2a, Segoe UI Emoji:fe0f:fe0f, Segoe UI Emoji:20e3:20e3, Microsoft YaHei, SF Pro, Segoe UI Emoji, Noto Color Emoji"
   label_font_face: "Microsoft YaHei"       # 标签字体
   comment_font_face: "Microsoft YaHei"     # 注释字体
   font_point: 12                           # 全局字体字号
@@ -90,6 +93,30 @@ style:
     # type: vertical                       # 布局设置，效果和 style 下的设置相同：
                                            # horizontal（横向）；vertical（竖向） ; vertical_text（竖排文本） ; vertical+fullscreen（全屏） ; horizontal+fullscreen（横向全屏）
 # [End of <style>]
+
+# 动态候选布局配置（需配合 style/layout/type: auto 使用）
+dynamic_layout:
+  default: horizontal    # 默认布局: horizontal | vertical
+  rules:
+    - option: vertical_layout
+      value: true
+      layout: vertical
+    - candidate_max_text_length_gt: 20
+      layout: vertical
+    - candidate_count_gt: 6
+      layout: vertical
+  navigation:
+    enabled: true          # true：按实际横/竖排使用下列候选导航键
+    horizontal:
+      previous_candidate: Control+Left
+      next_candidate: Control+Right
+      previous_page: Up
+      next_page: Down
+    vertical:
+      previous_candidate: Up
+      next_candidate: Down
+      previous_page: Control+Left
+      next_page: Control+Right
 
 # [preset_color_schemes]
 # 配色设定

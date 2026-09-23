@@ -1,0 +1,42 @@
+customization:
+  distribution_code_name: Weasel
+  distribution_version: 0.17.4
+  generator: "Weasel::UIStyleSettings"
+  modified_time: "Tue Sep 22 09:30:06 2026"
+  rime_version: 1.17.0
+patch:
+  dynamic_layout:
+    default: horizontal
+    navigation: {enabled: true, horizontal: {next_candidate: "Control+Right", next_page: Down, previous_candidate: "Control+Left", previous_page: Up}, vertical: {next_candidate: Down, next_page: "Control+Right", previous_candidate: Up, previous_page: "Control+Left"}}
+    rules: [{layout: vertical, option: vertical_layout, value: true}]
+  "preset_color_schemes/google/candidate_detail_back_color": 0xffffff
+  "preset_color_schemes/google/candidate_detail_border_color": 0xfce3d2
+  "preset_color_schemes/google/candidate_detail_key_text_color": 0xe8731a
+  # 可选：不设置时，**强调文字**继承当前皮肤的主色；设置后仅覆盖强调文字。
+  # "preset_color_schemes/google/candidate_detail_emphasis_text_color": 0xce7539
+  "preset_color_schemes/google/candidate_detail_line_separator_color": 0xfef0e8
+  "preset_color_schemes/google/candidate_detail_shadow_color": 0x1a000000
+  "preset_color_schemes/google/candidate_detail_text_color": 0x242120
+  show_notifications:
+    - ascii_mode
+    - full_shape
+    - transcription
+  show_notifications_time: 800
+  "style/candidate_detail_panel/border_width": 1
+  "style/candidate_detail_panel/corner_radius": 12
+  "style/candidate_detail_panel/draw_line_separators": false
+  "style/candidate_detail_panel/enabled": true
+  "style/candidate_detail_panel/gap": 10
+  "style/candidate_detail_panel/han_font_face": "Microsoft YaHei"
+  "style/candidate_detail_panel/latin_font_face": "Cascadia Mono"
+  "style/candidate_detail_panel/linespacing": 6
+  "style/candidate_detail_panel/max_lines": 32
+  "style/candidate_detail_panel/padding_x": 16
+  "style/candidate_detail_panel/padding_y": 14
+  "style/candidate_detail_panel/position": auto
+  "style/candidate_detail_panel/width": 480
+  "style/color_scheme": google
+  "style/font_face": "Segoe UI Emoji:23:23, Segoe UI Emoji:2a:2a, Segoe UI Emoji:fe0f:fe0f, Segoe UI Emoji:20e3:20e3, Microsoft YaHei, SF Pro, Segoe UI Emoji, Noto Color Emoji"
+  "style/inline_preedit": true
+  "style/layout/type": auto
+  "style/preedit_type": composition

@@ -39,7 +39,6 @@ switcher:
     - full_shape  # 保留全角模式
     - ascii_punct # 保留西文模式
     - transcription     # 保留汉字简繁体选项
-    - emoji_suggestion  # Emoji
   # 折叠选项以节省空间，多方案时建议折叠 true ，一个方案建议展开 false
   fold_options: true
   # 对选项进行缩写
@@ -66,15 +65,15 @@ punctuator:
     ' ' : { commit: '　' }
     ',' : { commit: ， }
     '.' : { commit: 。 }
-    '<' : [ 《, 〈, «, ‹ ]
-    '>' : [ 》, 〉, », › ]
-    '/' : [ ／, ÷ ]
+    '<' : { commit: 《 }
+    '>' : { commit: 》 }
+    '/' : { commit: 、 }
     '?' : { commit: ？ }
     ';' : { commit: ； }
     ':' : { commit: ： }
-    '''' : { pair: [ '‘', '’' ] }
-    '"' : { pair: [ '“', '”' ] }
-    '\' : [ 、, ＼ ]
+    '''' : { pair: [ '“', '”' ] }
+    '"' : { pair: [ '‘', '’' ] }
+    '\' : { commit: 、 }
     '|' : [ ・, ｜, '§', '¦' ]
     '`' : ｀
     '~' : [ 〜, ～, 〰 ]
@@ -91,23 +90,23 @@ punctuator:
     '-' : －
     '_' : ——
     '+' : ＋
-    '=' : ＝
-    '[' : [ 「, 【, 〔, ［ ]
-    ']' : [ 」, 】, 〕, ］ ]
+    '=' : { commit: '=' }
+    '[' : { commit: 【 }
+    ']' : { commit: 】 }
     '{' : [ 『, 〖, ｛ ]
     '}' : [ 』, 〗, ｝ ]
   half_shape:
     ',' : { commit: ， }
     '.' : { commit: 。 }
-    '<' : [ 《, 〈, «, ‹ ]
-    '>' : [ 》, 〉, », › ]
-    '/' : [ 、, '/', ／, ÷ ]
+    '<' : { commit: 《 }
+    '>' : { commit: 》 }
+    '/' : { commit: 、 }
     '?' : { commit: ？ }
     ';' : { commit: ； }
     ':' : { commit: ： }
-    '''' : { pair: [ '‘', '’' ] }
-    '"' : { pair: [ '“', '”' ] }
-    '\' : [ 、, '\', ＼ ]
+    '''' : { pair: [ '“', '”' ] }
+    '"' : { pair: [ '‘', '’' ] }
+    '\' : { commit: 、 }
     '|' : [ ・, '|', ｜, '§', '¦' ]
     '`' : '`'
     '~' : [ '~', 〜, ～, 〰 ]
@@ -124,9 +123,9 @@ punctuator:
     '-' : '-'
     '_' : ——
     '+' : '+'
-    '=' : '='
-    '[' : [ 「, 【, 〔, ［ ]
-    ']' : [ 」, 】, 〕,  ］ ]
+    '=' : { commit: '=' }
+    '[' : { commit: 【 }
+    ']' : { commit: 】 }
     '{' : [ 『, 〖, ｛ ]
     '}' : [ 』, 〗, ｝ ]
 
@@ -144,19 +143,16 @@ key_binder:
     - { when: composing, accept: Control+g, send: Escape }       # 退出编码
     - { when: composing, accept: Alt+v, send: Page_Up }          # 翻页
     - { when: composing, accept: Control+v, send: Page_Down }
-    # 按词移动光标
-    - { when: composing, accept: ISO_Left_Tab, send: Shift+Left } # ISO_Left_Tab 是 Shift+Tab
-    - { when: composing, accept: Shift+Tab, send: Shift+Left }
-    - { when: composing, accept: Tab, send: Shift+Right }
+    # Tab 与 Shift+Tab 留给方案内明确启用的处理。
     # 翻页
     - { when: paging, accept: minus, send: Page_Up }             # 使用`-`进行向上翻页（第一页时候无效）
-    - { when: has_menu, accept: equal, send: Page_Down }         # 使用`=`进行向下翻页
-    - { when: paging, accept: comma, send: Page_Up }             # 候选窗口翻页
-    - { when: has_menu, accept: period, send: Page_Down }
+    # - { when: has_menu, accept: equal, send: Page_Down }         # 已取消使用`=`向下翻页，保证`=`直接输入
+    # - { when: paging, accept: comma, send: Page_Up }             # 取消逗号翻页
+    # - { when: has_menu, accept: period, send: Page_Down }        # 取消句号翻页，输入时直接上屏并输入标点。
     - { when: predicting, accept: comma, send: comma }           # 在预编码模式下,不当作快捷键
     - { when: predicting, accept: period, send: period }
-    # 切换状态
-    - { when: always, accept: Control+Shift+1, select: .next }   # 切换输入方案
+    - { when: has_menu, accept: semicolon, send: 2 }             # 分号选择第二候选
+    - { when: has_menu, accept: apostrophe, send: 3 }            # 单引号选择第三候选
     - { when: always, accept: Control+Shift+2, toggle: ascii_mode } # 切换中/西文模式
     - { when: always, accept: Control+Shift+3, toggle: full_shape } # 切换全角/半角
     - { when: always, accept: Control+Shift+4, toggle: transcription } # 切换简体/繁体

@@ -1,0 +1,24 @@
+{
+  "poll_interval_seconds": 28800,
+  "jobs": {
+    "lpr": {
+      "enabled": true,
+      "handler": "lpr",
+      "max_daily_attempts": 3,
+      "retry_interval_seconds": 28800,
+      "timeout_seconds": 8,
+      "url": "https://www.chinamoney.com.cn/r/cms/www/chinamoney/data/currency/bk-lpr.json"
+    },
+    "holidays": {
+      "enabled": true,
+      "handler": "holidays",
+      "max_daily_attempts": 3,
+      "retry_interval_seconds": 28800,
+      "timeout_seconds": 8,
+      "start_month": 11,
+      "start_day": 20,
+      "require_papers": true,
+      "url_template": "https://fastly.jsdelivr.net/gh/NateScarlet/holiday-cn@master/{year}.json"
+    }
+  }
+}

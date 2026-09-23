@@ -1,0 +1,40 @@
+# Rime schema
+# encoding: utf-8
+
+# 该依赖方案用于让 Rime 部署器编译 shouxin_flypy.dict.yaml。
+# 无需加入 schema_list；实际输入仍由 double_pinyin_flypy 调用其词典。
+schema:
+  schema_id: shouxin_flypy
+  name: "手心小鹤词库（依赖）"
+  version: "2026.09.17"
+
+switches:
+  - name: ascii_mode
+    reset: 0
+    states: [中文, 西文]
+
+engine:
+  processors:
+    - ascii_composer
+    - speller
+    - selector
+    - navigator
+    - express_editor
+  segmentors:
+    - ascii_segmentor
+    - abc_segmentor
+    - fallback_segmentor
+  translators:
+    - table_translator
+  filters:
+    - uniquifier
+
+speller:
+  alphabet: zyxwvutsrqponmlkjihgfedcba
+  initials: zyxwvutsrqponmlkjihgfedcba
+
+translator:
+  dictionary: shouxin_flypy
+  enable_user_dict: false
+  enable_completion: false
+  enable_sentence: false

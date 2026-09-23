@@ -22,7 +22,7 @@ keyboard_layout: default
 chord_duration: 0.1  # seconds
 
 # options: always | never | appropriate
-show_notifications_when: appropriate
+show_notifications_when: always
 
 style:
   # 选择皮肤，亮色与暗色主题

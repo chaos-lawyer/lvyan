@@ -1,0 +1,10 @@
+---
+name: english_abbr
+version: "1.0"
+sort: by_weight
+# Reuse the existing melt_eng sources so no second English word list is kept.
+use_preset_vocabulary: false
+import_tables:
+  - dicts/rime_ice.en_ext
+  - dicts/rime_ice.en
+...
