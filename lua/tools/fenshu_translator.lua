@@ -63,13 +63,26 @@ local party_names = {
 }
 
 local function translator(input, seg, env)
-  local expr = input:match("^Ys(.*)$")
+  -- 匹配前缀：支持 Tab 模式注入的 Ys，也支持小鹤双拼直接触发的 yu 及全拼的 ys
+  local expr = input:match("^Ys(.*)$") or input:match("^yu(.*)$") or input:match("^ys(.*)$")
   if not expr then return end
 
   local context = env.engine and env.engine.context
   local tab_mode = context and context:get_property("tab_mode") or ""
-  if tab_mode ~= "fenshu" then
+
+  -- 触发条件判定：
+  -- 1. Tab 引导激活：tab_mode == "fenshu"
+  -- 2. 或小写直接触发：以 yu 或 ys 开头直接紧随数字（如 yu4、ys4、yu10/2 等）
+  local is_direct_trigger = (input:match("^yu%d") ~= nil) or (input:match("^ys%d") ~= nil)
+  if tab_mode ~= "fenshu" and not is_direct_trigger then
     return
+  end
+
+  -- 小写直接触发时，自动补全模式属性以便布局及选词生效
+  if tab_mode ~= "fenshu" and context and context.set_property then
+    context:set_property("tab_mode", "fenshu")
+    context:set_property("candidate_select_keys", "abcde")
+    if context.set_option then context:set_option("vertical_layout", true) end
   end
 
   set_mode_prompt(env, seg, "〔文本份数〕")

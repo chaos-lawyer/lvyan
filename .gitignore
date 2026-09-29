@@ -1,1 +1,25 @@
-/dicts/flypy/shouxin_flypy.txt
+# Sensitive personal data (strict exclusions)
+shouxin_flypy.txt
+llm_config.txt
+contacts.csv
+
+# Build artifacts
+build/
+*.bin
+*.gram
+
+# User dynamic data and databases
+*.userdb/
+*.userdb.old/
+*.userdb
+user_initials_history.txt
+name_user_dict*.txt
+user.yaml
+installation.yaml
+
+# Logs and runtime caches
+*.log
+.DS_Store
+data/update/update_manager.log
+data/update/update_state.json
+data/legal/lpr.backup.json

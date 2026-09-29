@@ -42,17 +42,6 @@ local function is_complete_date_expression(input)
     return false
 end
 
-local layout_option = "vertical_layout"
-
-local function is_vertical_mode_context(context)
-  if not context:is_composing() then
-    return false
-  end
-  local tab_mode = context:get_property("tab_mode") or ""
-  return (tab_mode == "r" or tab_mode == "rf" or tab_mode == "lpr" or tab_mode == "v"
-    or tab_mode == "anyou" or tab_mode == "zuiming" or tab_mode == "fayuan" or tab_mode == "falv" or tab_mode == "fenshu")
-end
-
 local function is_letter_select_context(context)
   if not context:is_composing() then
     return false
@@ -80,11 +69,6 @@ local is_syncing = false
 local function sync_mode(context)
   if is_syncing then return end
   is_syncing = true
-
-  local should_be_vertical = is_vertical_mode_context(context)
-  if context:get_option(layout_option) ~= should_be_vertical then
-    context:set_option(layout_option, should_be_vertical)
-  end
 
   local in_date = is_date_context(context)
   local cur_keys = context:get_property(select_keys_property) or ""
@@ -123,9 +107,6 @@ function processor.fini(env)
 
     local context = env.engine and env.engine.context
     if context then
-        if context:get_option(layout_option) then
-            context:set_option(layout_option, false)
-        end
         if context:get_property(select_keys_property) == "abcde" then
             context:set_property(select_keys_property, "")
         end

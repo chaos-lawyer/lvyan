@@ -1,0 +1,35 @@
+# encoding: utf-8
+# RIME-LMDG 万象语法模型配置 (Language, Model, Dictionary, Grammar)
+# 项目地址: https://github.com/amzxyz/RIME-LMDG
+# 适用于：小狼毫 (Weasel 0.15+)、鼠须管 (Squirrel 0.16+)、fcitx5-rime 等内置 librime-octagram 插件的环境。
+
+octagram:
+  __patch:
+    # 语法模型配置
+    grammar:
+      # 模型名称（对应 Rime 目录下的 .gram 模型文件名，无需写 .gram 后缀）
+      # 简体模型: wanxiang-lts-zh-hans
+      # 繁体模型: wanxiang-lts-zh-hant
+      language: wanxiang-lts-zh-hans
+维护
+      # 搭配词组的最大长度（通常设为 6 或 8）
+      collocation_max_length: 6
+制订计划
+      # 搭配词组的最小长度（设为 3 可避免对高频双字词过度干扰；若追求更强的 2 字词上下文约束可微调为 2）
+      collocation_min_length: 2
+
+      # 搭配惩罚/奖励权重（负值越大惩罚越重，万象官方推荐 -14 ~ -16）
+      collocation_penalty: -14
+
+      # 非搭配惩罚权重（万象官方推荐 -6 ~ -8）
+      non_collocation_penalty: -6
+
+      # 弱搭配惩罚权重
+      weak_collocation_penalty: -100
+
+      # 句尾惩罚权重
+      rear_penalty: -20
+
+    # 翻译器配置调整（配合语法模型以避免过多重复和异常联想）
+    translator/contextual_suggestions: false
+    translator/max_homophones: 8

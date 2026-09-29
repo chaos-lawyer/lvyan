@@ -38,6 +38,31 @@ function M.func(key, env)
     return kNoop
   end
   env.m_pressed = true
+  local cur_mode = context:get_property("tab_mode") or ""
+  if cur_mode ~= "" then
+    -- 若当前处于通讯录等筛选模式，剥离模式前缀并切换到人名模式
+    local input = context.input or ""
+    local prefix = context:get_property("tab_mode_prefix") or ""
+    local raw = input
+    if prefix ~= "" and input:sub(1, #prefix) == prefix then
+      raw = input:sub(#prefix + 1)
+    elseif input:sub(1, 1) == "N" then
+      raw = input:sub(2)
+    end
+    context:clear()
+    if raw ~= "" then
+      context:push_input(raw)
+    end
+    context:set_property("tab_mode", "")
+    context:set_property("tab_mode_display", "")
+    context:set_property("tab_mode_prefix", "")
+    context:set_property("candidate_select_keys", "")
+    context:set_option("name_mode", true)
+    local layout_manager = require("layout_manager")
+    layout_manager.sync(context)
+    return kAccepted
+  end
+
   context:set_option("name_mode", not context:get_option("name_mode"))
   return kAccepted
 end

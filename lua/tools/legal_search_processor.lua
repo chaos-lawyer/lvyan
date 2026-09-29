@@ -31,7 +31,12 @@ local function current_detail(context, env)
     detail = "**人民法院**\n地区：" .. (region or "未标注") .. "\n审级：" .. (level or "未标注")
   elseif category == "案由" then
     local tag = (cand.comment or ""):match("^〔案由〕〔(.-)〕")
-    detail = "**民事案由**\n" .. (tag or "未标注案由级别")
+    local sub_detail = require("anyou_data").get_detail(cand.text)
+    if sub_detail and sub_detail ~= "" then
+      detail = "**民事案由**\n" .. (tag or "三级案由") .. "\n" .. sub_detail
+    else
+      detail = "**民事案由**\n" .. (tag or "未标注案由级别")
+    end
   else
     detail = cand.comment or ""
   end
@@ -40,6 +45,10 @@ local function current_detail(context, env)
   if category == "法律" then
     local config = env.engine.schema.config
     local value = config and config:get_int("falv/detail_width") or 0
+    if value and value > 0 then width = tostring(value) end
+  elseif category == "案由" then
+    local config = env.engine.schema.config
+    local value = config and config:get_int("anyou/detail_width") or 0
     if value and value > 0 then width = tostring(value) end
   end
   return detail or "", width
@@ -55,17 +64,6 @@ local function sync(context, env)
     context:set_property("candidate_detail", "")
     context:set_property("candidate_detail_owner", "")
     context:set_property(DETAIL_WIDTH_PROPERTY, "")
-  end
-
-  local composing = context:is_composing()
-  local tab_mode = context:get_property("tab_mode") or ""
-  local vertical_modes = {
-    anyou = true, zuiming = true, fayuan = true, falv = true,
-    legal_search = true, lpr = true, r = true, rf = true, v = true, fenshu = true,
-  }
-  local should_be_vertical = composing and vertical_modes[tab_mode] == true
-  if context:get_option("vertical_layout") ~= should_be_vertical then
-    context:set_option("vertical_layout", should_be_vertical)
   end
 end
 

@@ -193,5 +193,5 @@ ascii_composer:
     Control_L: noop  # 按下左 Control 键不做任何操作
     Control_R: noop  # 按下右 Control 键不做任何操作
     Shift_L: commit_code  # 按下左 Shift 键会直接上屏
-    Shift_R: inline_ascii  # 按下右 Shift 键会临时切换到西文模式
+    Shift_R: noop  # 右 Shift 单独点按切换全半角，由方案中的 Lua 处理器负责
   good_old_caps_lock: true  # 启用经典的 Caps Lock 开启西文模式的方式

@@ -11,13 +11,14 @@
 local function autocap_filter(input, env)
     local rawCode = env.engine.context.input -- 输入码
     local code = rawCode
-    -- 英文简写模式以大写 E 引导，不能把它误判为用户输入的首字母大写。
-    local segment = env.engine.context.composition:back()
-    if code:sub(1, 1) == "E" and (
-        (env.engine.context:get_property("tab_mode") or "") == "english"
-        or (segment and segment:has_tag("english_filter"))
-      ) then
-      code = code:sub(2)
+    -- 英文模式的隐藏 Oe 前缀不参与大小写判断；快捷键初次刷新时模式属性可能尚未写入。
+    local context = env.engine.context
+    if (context:get_property("tab_mode") or "") == "english" or code:sub(1, 2) == "Oe" then
+      local prefix = context:get_property("tab_mode_prefix") or ""
+      if prefix == "" and code:sub(1, 2) == "Oe" then prefix = "Oe" end
+      if prefix ~= "" and code:sub(1, #prefix) == prefix then
+        code = code:sub(#prefix + 1)
+      end
     end
     local codeLen = #rawCode
     local codeAllUCase = false

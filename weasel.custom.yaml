@@ -2,7 +2,7 @@ customization:
   distribution_code_name: Weasel
   distribution_version: 0.17.4
   generator: "Weasel::UIStyleSettings"
-  modified_time: "Tue Sep 22 09:30:06 2026"
+  modified_time: "Fri Sep 25 09:54:23 2026"
   rime_version: 1.17.0
 patch:
   dynamic_layout:
@@ -12,8 +12,6 @@ patch:
   "preset_color_schemes/google/candidate_detail_back_color": 0xffffff
   "preset_color_schemes/google/candidate_detail_border_color": 0xfce3d2
   "preset_color_schemes/google/candidate_detail_key_text_color": 0xe8731a
-  # 可选：不设置时，**强调文字**继承当前皮肤的主色；设置后仅覆盖强调文字。
-  # "preset_color_schemes/google/candidate_detail_emphasis_text_color": 0xce7539
   "preset_color_schemes/google/candidate_detail_line_separator_color": 0xfef0e8
   "preset_color_schemes/google/candidate_detail_shadow_color": 0x1a000000
   "preset_color_schemes/google/candidate_detail_text_color": 0x242120

@@ -8,5 +8,3 @@ patch:
   schema_list:
     - {schema: double_pinyin_flypy}
     - {schema: rime_mint}
-    # 仅用于构建 english_abbr.prism；日常无需切换到此方案。
-    - {schema: english_abbr}

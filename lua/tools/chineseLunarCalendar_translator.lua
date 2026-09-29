@@ -494,4 +494,10 @@ local function _disabled_translator(input, seg, env)
 	end
 end
 
-return translator
+local M = { solar2LunarByTime = solar2LunarByTime }
+setmetatable(M, {
+	__call = function(t, ...)
+		return translator(...)
+	end
+})
+return M

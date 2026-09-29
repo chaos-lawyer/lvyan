@@ -106,6 +106,18 @@ local function is_target_english(cand, normalized_code)
         and normalized_english(text) == normalized_code
 end
 
+local function is_hot_slot_candidate(cand)
+    if not cand then return false end
+    if cand.type == "hot_slot" then return true end
+    if cand.get_dynamic_type and cand:get_dynamic_type() == "Shadow" then
+        local genuine = cand.get_genuine and cand:get_genuine()
+        if genuine and genuine.type == "hot_slot" then
+            return true
+        end
+    end
+    return false
+end
+
 function M.func(input, env)
     local code = env.engine.context.input
     local normalized_code = normalized_english(code)
@@ -145,9 +157,27 @@ function M.func(input, env)
         return
     end
 
-    local slots_before_target = env.idx - 1
+    -- 获取受保护的固定槽位数量（hot_slot_filter 的固定槽位拥有最高优先级，不能被英文挤占）
+    local last_hot_slot_idx = 0
+    for i, b in ipairs(before) do
+        if is_hot_slot_candidate(b) then
+            last_hot_slot_idx = i
+        end
+    end
+
+    local max_slot_pos = 0
+    if _G.hot_slot and _G.hot_slot.slots then
+        local entry = _G.hot_slot.slots[code:lower()]
+        if entry and entry.max_pos then
+            max_slot_pos = entry.max_pos
+        end
+    end
+
+    local protected_slots = math.max(last_hot_slot_idx, max_slot_pos)
+    local slots_before_target = math.max(env.idx - 1, protected_slots)
+
     if #before >= slots_before_target then
-        -- 英文原本靠后：前移到 idx，其余候选保持相对顺序。
+        -- 英文原本靠后：前移到指定候选位（避开固定槽位），其余候选保持相对顺序。
         for i = 1, slots_before_target do
             yield(before[i])
         end
@@ -156,7 +186,7 @@ function M.func(input, env)
             yield(before[i])
         end
     else
-        -- 英文原本靠前：先用后续候选填满 idx 之前的位置，再放回英文。
+        -- 英文原本靠前：先用后续候选填满目标位置之前的空位，再放回英文。
         for _, buffered in ipairs(before) do
             yield(buffered)
         end
@@ -166,7 +196,18 @@ function M.func(input, env)
             if not filler then break end
             yield(filler)
         end
-        yield(target)
+        while true do
+            local next_peek = next_cand()
+            if next_peek and is_hot_slot_candidate(next_peek) then
+                yield(next_peek)
+            else
+                yield(target)
+                if next_peek then
+                    yield(next_peek)
+                end
+                break
+            end
+        end
     end
 
     for remaining in iter_func, state, iter_var do

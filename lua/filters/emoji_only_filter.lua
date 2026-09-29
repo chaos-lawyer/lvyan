@@ -32,8 +32,10 @@ local function is_emoji(text)
 end
 
 return function(input, env)
-  local segment = env.engine.context.composition:back()
-  local emoji_mode = segment and segment:has_tag("emoji")
+  local context = env.engine and env.engine.context
+  local tab_mode = (context and context.get_property and context:get_property("tab_mode")) or ""
+  local segment = context and context.composition:back()
+  local emoji_mode = (tab_mode == "emoji") and segment and segment:has_tag("emoji")
   for candidate in input:iter() do
     if not emoji_mode or is_emoji(candidate.text) then
       yield(candidate)

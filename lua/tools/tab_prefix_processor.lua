@@ -10,8 +10,9 @@
     lpr + Tab -> LPR 查询模式
     v   + Tab -> 数字转换 / 金额转换 / 计算器（亦支持大写 V 直接启动）
     a/ay + Tab -> 民事案由筛选模式
-    z   + Tab -> 刑法罪名筛选模式
-    f + Tab -> 法院/案由/罪名/法律综合检索；fy + Tab -> 法院专用检索
+    z/zm + Tab -> 刑法罪名筛选模式
+    y/fy + Tab -> 法院筛选模式
+    f/fl + Tab -> 法律检索模式
     l + Tab -> LPR 查询模式
   通过上下文属性 "tab_mode" 严格标记功能模式；
   除 v 模式和大写 U 拆字模式外，其他模式直接输入大写字母将不具备该标记，不会被误触发。
@@ -62,6 +63,8 @@ end
 
 function processor.init(env)
   local context = env.engine.context
+  -- 专属 Emoji 转换只用于 emoji 标签；从切换菜单移除开关后仍保持可用。
+  context:set_option("emoji_mode_enabled", true)
   reset_if_not_composing(context)
   env.tab_mode_connection = context.update_notifier:connect(function(ctx)
     reset_if_not_composing(ctx)
@@ -96,6 +99,16 @@ function processor.func(key, env)
   -- 如果处于西文/英文模式，不拦截大写字母
   if context:get_option("ascii_mode") then
     return kNoop
+  end
+
+  -- 日期和 LPR 模式的数字是查询编码；在候选选择器之前直接接收。
+  local tab_mode = context:get_property("tab_mode") or ""
+  if context:is_composing() and (tab_mode == "r" or tab_mode == "rf" or tab_mode == "lpr") then
+    local digit = repr:match("^([0-9])$") or repr:match("^KP_([0-9])$")
+    if digit then
+      context:push_input(digit)
+      return kAccepted
+    end
   end
 
   -- 支持大写 V 直接启动 v 模式（数字转换 / 金额转换 / 计算器，仅在未组词或首字符时启动）
@@ -158,8 +171,8 @@ function processor.func(key, env)
     return kAccepted
   end
 
-  -- z + Tab -> 罪名筛选模式
-  if inp == "z" and mode_enabled(env, "z") then
+  -- z / zm + Tab -> 罪名筛选模式
+  if (inp == "z" or inp == "zm") and mode_enabled(env, "z") then
     is_switching = true
     context:clear()
     context:push_input("Z")
@@ -171,12 +184,12 @@ function processor.func(key, env)
     return kAccepted
   end
 
-  -- f + Tab -> 法院、案由、罪名、法律综合检索
-  if inp == "f" and mode_enabled(env, "f") then
+  -- y / fy + Tab -> 法院筛选模式
+  if (inp == "y" or inp == "fy") and mode_enabled(env, "y") then
     is_switching = true
     context:clear()
     context:push_input("F")
-    context:set_property("tab_mode", "legal_search")
+    context:set_property("tab_mode", "fayuan")
     set_mode_display(context, env, inp, "F")
     if context.set_option then context:set_option("vertical_layout", true) end
     context:set_property("candidate_select_keys", "")
@@ -184,13 +197,13 @@ function processor.func(key, env)
     return kAccepted
   end
 
-  -- fy + Tab -> 兼容保留法院专用检索
-  if inp == "fy" and mode_enabled(env, "f") then
+  -- f / fl + Tab -> 法律检索模式
+  if (inp == "f" or inp == "fl") and mode_enabled(env, "f") then
     is_switching = true
     context:clear()
-    context:push_input("F")
-    context:set_property("tab_mode", "fayuan")
-    set_mode_display(context, env, inp, "F")
+    context:push_input("G")
+    context:set_property("tab_mode", "falv")
+    set_mode_display(context, env, inp, "G")
     if context.set_option then context:set_option("vertical_layout", true) end
     context:set_property("candidate_select_keys", "")
     is_switching = false
@@ -264,11 +277,13 @@ function processor.func(key, env)
 
   -- b + Tab -> Emoji 表情模式
   if inp == "b" and mode_enabled(env, "b") then
+    local config = env.engine.schema.config
+    local prefix = (config and config:get_string("emoji/prefix")) or "Ob"
     is_switching = true
     context:clear()
-    context:push_input("B")
+    context:push_input(prefix)
     context:set_property("tab_mode", "emoji")
-    set_mode_display(context, env, inp, "B")
+    set_mode_display(context, env, inp, prefix)
     if context.set_option then context:set_option("vertical_layout", false) end
     context:set_property("candidate_select_keys", "")
     is_switching = false
@@ -277,12 +292,27 @@ function processor.func(key, env)
 
   -- e + Tab -> 英文前缀补全模式。
   if inp == "e" and mode_enabled(env, "english") then
+    local config = env.engine.schema.config
+    local prefix = (config and config:get_string("english_filter/prefix")) or "Oe"
     is_switching = true
     context:clear()
-    context:push_input("E")
+    context:push_input(prefix)
     context:set_property("tab_mode", "english")
-    set_mode_display(context, env, inp, "E")
+    set_mode_display(context, env, inp, prefix)
     if context.set_option then context:set_option("vertical_layout", false) end
+    context:set_property("candidate_select_keys", "")
+    is_switching = false
+    return kAccepted
+  end
+
+  -- n + Tab -> 通讯录模式
+  if inp == "n" and (mode_enabled(env, "contacts") or mode_enabled(env, "n")) then
+    is_switching = true
+    context:clear()
+    context:push_input("N")
+    context:set_property("tab_mode", "contacts")
+    set_mode_display(context, env, inp, "N")
+    if context.set_option then context:set_option("vertical_layout", true) end
     context:set_property("candidate_select_keys", "")
     is_switching = false
     return kAccepted

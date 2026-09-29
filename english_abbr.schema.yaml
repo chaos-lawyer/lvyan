@@ -32,6 +32,9 @@ speller:
   algebra:
     # Protect an initial vowel, then derive a single consonant skeleton.
     # The original full spelling remains; no exponential partial variants exist.
+    # Add a lowercase search code for entries such as English and China,
+    # while keeping the original candidate text and its original code.
+    - derive/^.+$/\L$0/
     - xform/^a/!/
     - xform/^e/@/
     - xform/^i/,/

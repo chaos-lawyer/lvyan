@@ -1,0 +1,11 @@
+# Rime dictionary
+# encoding: utf-8
+---
+name: rime_mint_all_initials
+version: "2026-09-26"
+sort: by_weight
+use_preset_vocabulary: false
+import_tables:
+  - dicts/rime_mint_initials_2
+  - dicts/rime_mint_initials
+...

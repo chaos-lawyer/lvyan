@@ -276,11 +276,14 @@ local P = {}
 local function is_function_code_after_digit(env, context, digit_char)
     if not context or not digit_char or digit_char == "" then return false end
     local tab_mode = context:get_property("tab_mode") or ""
-    if tab_mode == "anyou" or tab_mode == "zuiming" or tab_mode == "fayuan" or tab_mode == "falv" then
+    if tab_mode == "r" or tab_mode == "rf" or tab_mode == "lpr" or tab_mode == "v" or tab_mode == "fenshu" then
+        return true
+    end
+    if tab_mode == "anyou" or tab_mode == "zuiming" or tab_mode == "fayuan" or tab_mode == "falv" or tab_mode == "contacts" then
         return false
     end
     local code = context.input or ""
-    if code:match("^[AZFG]") then
+    if code:match("^[AZFGN]") then
         return false
     end
     local s = code .. digit_char
@@ -373,6 +376,17 @@ function P.func(key, env)
         and (current_input:match("^[Dd]%d+$") or current_input:match("^[Dd]%d+%.%d*$")) then
         if context.push_input then context:push_input(".")
         else context.input = current_input .. "." end
+        return RIME_PROCESS_RESULTS.kAccepted
+    end
+
+    -- 文本份数模式中的「/」、「-」、「.」作为均分与指定分配分隔符，直接作为编码输入
+    if (key_repr == "slash" or key_repr == "/" or key_repr == "minus" or key_repr == "-" or key_repr == "period" or key_repr == ".")
+        and not key:ctrl() and not key:alt() and not key:super() and not key:shift()
+        and (current_input:match("^yu%d") or current_input:match("^[Yy][Ss]%d")) then
+        local sym = (key_repr == "slash" or key_repr == "/") and "/"
+            or ((key_repr == "minus" or key_repr == "-") and "-" or ".")
+        if context.push_input then context:push_input(sym)
+        else context.input = current_input .. sym end
         return RIME_PROCESS_RESULTS.kAccepted
     end
 

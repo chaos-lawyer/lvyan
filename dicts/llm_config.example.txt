@@ -1,0 +1,43 @@
+# Copy this file to llm_config.txt in the Rime user directory and edit the values below.
+# llm_config.txt is a local private file and is excluded from version control.
+# The API key is stored as plain text; keep this file inside your Windows user account.
+# AI prediction is triggered with backslash; Tab keeps its normal schema behavior.
+
+# Optional: custom config file path (defaults to dicts/llm_config.txt under Rime user dir)
+# config_path=dicts/llm_config.txt
+
+enabled=true
+trigger_key=backslash
+base_url=https://api.example.com/v1
+api_key=
+model=
+input_scheme=auto
+
+context_enabled=true
+# TSF 返回空文本时，使用当前会话近期上屏记录（不保证等于光标前文本）。
+context_recent_commits_fallback=true
+context_chars=500
+boundary_search_chars=100
+# 上下文调试：off 关闭；preview 记录尾部预览；full 记录完整上下文。
+# 日志写入 Rime 用户目录下的 llm_debug.log，不会记录 API Key。
+debug_context=off
+debug_context_preview_chars=100
+candidate_count=5
+timeout_ms=3000
+temperature=0
+
+ai_comment_enabled=true
+# AI 预测与续写候选的注释标签
+ai_predict_comment=✦ AI预测
+ai_continuation_comment=✦ AI续写
+# 续写候选数量（若总候选数为 5，设为 2 则前 3 个为预测，后 2 个为续写；设为 0 则全部为预测）
+continuation_count=2
+
+cache_enabled=true
+cache_ttl_seconds=300
+cache_max_entries=500
+
+# 提示词模板。使用字面量 \n 换行。
+# 模型支持返回包含 predictions 和 continuations 数组的 JSON，或者返回 candidates 数组由程序自动分配。
+prompt_both=你是中文输入法候选生成器，不是聊天助手。\nraw_input 仅供调试，不得据此推导小鹤键位。\n用户本次输入只可能采用 phonetic（本地解析后的标准拼音）或 initials（本地标准化的声母/首字母）中的一种，不会混用。\n请结合 context 语义，返回一个 JSON 对象，包含 predictions 数组（最多三个符合输入编码的精确匹配词句）和 continuations 数组（最多两个结合 context 和输入的自然语言后续扩展续写）。不得包含任何解释或 markdown，只返回纯 JSON。
+prompt_initials_only=你是中文输入法候选生成器，不是聊天助手。\nraw_input 仅供调试，不得据此推导键位。\n本次只有 initials 是有效输入解释，且已由本地输入法标准化。\n请结合 context 语义，返回一个 JSON 对象，包含 predictions 数组（最多三个符合 initials 的精确匹配词句）和 continuations 数组（最多两个结合 context 和输入的自然语言后续扩展续写）。不得包含任何解释或 markdown，只返回纯 JSON。

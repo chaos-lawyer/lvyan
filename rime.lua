@@ -4,7 +4,7 @@
 
 local user_dir = (_G.rime_api and _G.rime_api.get_user_data_dir and _G.rime_api.get_user_data_dir()) or ""
 local sep = (package.config and package.config:sub(1, 1)) or "/"
-local subdirs = { "legal", "name", "tools", "filters", "updater", "core", "llm" }
+local subdirs = { "legal", "name", "tools", "filters", "updater", "core", "llm", "contacts" }
 
 for _, dir in ipairs(subdirs) do
   if user_dir ~= "" then

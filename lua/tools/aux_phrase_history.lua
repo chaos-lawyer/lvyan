@@ -144,6 +144,10 @@ function M.processor.init(env)
   end)
 end
 
+function M.processor.func(key_event, env)
+  return 2 -- 2 为 kNoop
+end
+
 function M.processor.fini(env)
   if env.commit_connection then env.commit_connection:disconnect() end
   env.commit_connection = nil

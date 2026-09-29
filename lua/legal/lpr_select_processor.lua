@@ -12,17 +12,6 @@ local key_map = {
   A = 1, B = 2, C = 3, D = 4, E = 5,
 }
 
-local layout_option = "vertical_layout"
-
-local function is_vertical_mode_context(context)
-  if not context:is_composing() then
-    return false
-  end
-  local tab_mode = context:get_property("tab_mode") or ""
-  return (tab_mode == "lpr" or tab_mode == "r" or tab_mode == "rf" or tab_mode == "v"
-    or tab_mode == "anyou" or tab_mode == "zuiming" or tab_mode == "fayuan" or tab_mode == "falv" or tab_mode == "fenshu")
-end
-
 local function is_letter_select_context(context)
   if not context:is_composing() then
     return false
@@ -36,7 +25,7 @@ local function is_lpr_context(context)
     return false
   end
   local tab_mode = context:get_property("tab_mode") or ""
-  return (tab_mode == "lpr" or tab_mode == "v" or tab_mode == "fenshu")
+  return (tab_mode == "lpr" or tab_mode == "r" or tab_mode == "rf" or tab_mode == "v" or tab_mode == "fenshu")
 end
 
 local select_keys_property = "candidate_select_keys"
@@ -47,15 +36,18 @@ end
 
 local is_syncing = false
 
--- 候选菜单进入/离开 LPR 或日期模式时同步动态布局 option 与动态候选选择键。
--- 仅在状态发生变化时写入，避免再次触发 update_notifier 后形成循环。
+-- 候选菜单进入/离开 LPR 或日期模式时同步动态候选选择键。
 local function sync_mode(context)
   if is_syncing then return end
   is_syncing = true
 
-  local should_be_vertical = is_vertical_mode_context(context)
-  if context:get_option(layout_option) ~= should_be_vertical then
-    context:set_option(layout_option, should_be_vertical)
+  local tab_mode = context:get_property("tab_mode") or ""
+  local inp = context.input or ""
+  -- 份数模式如果输入退回到单纯的 yu 或 ys 或空，自动退出份数模式
+  if tab_mode == "fenshu" and (inp == "yu" or inp == "ys" or inp == "Ys" or inp == "") then
+    context:set_property("tab_mode", "")
+    context:set_property(select_keys_property, "")
+    if context.set_option then context:set_option("vertical_layout", false) end
   end
 
   local in_lpr = is_lpr_context(context)
@@ -91,9 +83,6 @@ function processor.fini(env)
 
   local context = env.engine and env.engine.context
   if context then
-    if context:get_option(layout_option) then
-      context:set_option(layout_option, false)
-    end
     if context:get_property(select_keys_property) == "abcde" then
       context:set_property(select_keys_property, "")
     end

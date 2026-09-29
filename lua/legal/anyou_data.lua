@@ -1372,4 +1372,28 @@ function M.search(query, is_flypy)
   return final_results
 end
 
+-- 预构建三级案由的四级子案由侧窗详情
+local details = {}
+for _, r in ipairs(M.records) do
+  if r.level == 4 and r.parent then
+    local num = r.tag and r.tag:match("%d+%.?%d*") or ""
+    local item_str = (num ~= "" and ("**" .. num .. "** ") or "") .. r.text
+    if not details[r.parent] then
+      details[r.parent] = { item_str }
+    else
+      table.insert(details[r.parent], item_str)
+    end
+  end
+end
+
+local formatted_details = {}
+for parent, items in pairs(details) do
+  formatted_details[parent] = "**下级四级案由：**\n" .. table.concat(items, "\n")
+end
+
+function M.get_detail(name)
+  if not name or name == "" then return "" end
+  return formatted_details[name] or ""
+end
+
 return M

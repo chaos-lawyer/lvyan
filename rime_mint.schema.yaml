@@ -1,6 +1,9 @@
 # Rime schema
 # encoding: utf-8
 
+# 引入 RIME-LMDG 万象语法模型配置
+__include: octagram:/octagram
+
 schema:
   schema_id: rime_mint
   name: 薄荷拼音-全拼输入
@@ -32,9 +35,6 @@ switches:
   - name: emoji_suggestion
     states: [ "😣️","😁️"]
     reset: 1
-  - name: emoji_mode_enabled
-    states: [ 关闭, 开启 ]
-    reset: 1
   - name: full_shape
     states: [ 半角, 全角 ]
     reset: 0
@@ -50,7 +50,8 @@ switches:
     
 engine:
   processors:
-    - lua_processor@*tab_mode_hotkey              # Ctrl+Shift+A/Z/F/L/E/B：将当前全拼带入筛选模式
+    - lua_processor@*right_shift_full_shape_processor # 单独点按右 Shift 切换全角/半角
+    - lua_processor@*tab_mode_hotkey              # Ctrl+Shift+A/Y/F/Z/E/B：将当前全拼带入筛选模式
     - lua_processor@*candidate_detail_commit_processor # =：将当前侧窗详情正文直接上屏
     - lua_processor@*transcription_hotkey         # Ctrl+Shift+T：切换简繁并消费整个按键序列
     - lua_processor@*repeat_history_processor     # h+Tab 查看历史，i+Tab 重复上次上屏
@@ -65,22 +66,22 @@ engine:
     - recognizer                                   # ※ 與 matcher 搭配，處理符合特定規則的輸入碼，如網址、反查等
     - key_binder                                   # ※ 在特定條件下將按鍵綁定到其他按鍵，如重定義逗號、句號爲候選翻頁鍵
     - lua_processor@*law_select_processor          # d+数字模式下使用 a/b/c/d/e 选词
-    - lua_processor@*anyou_processor               # 民事案由 A 模式动态竖排布局处理器
-    - lua_processor@*zuiming_processor             # 刑法罪名 Z 模式动态竖排布局处理器
-    - lua_processor@*fayuan_processor              # 全国人民法院 F 模式动态竖排布局处理器
-    - lua_processor@*falv_processor               # 国家法律 G 模式动态竖排与候选详情处理器
-    - lua_processor@*legal_search_processor       # 综合检索动态竖排与分类详情
-    - lua_processor@*llm_trigger_processor        # 普通字母输入的 Tab AI 候选 fallback（全部特殊处理器之后）
+    - lua_processor@*layout_manager                # 集中管理候选窗动态横/竖排布局
+    - lua_processor@*anyou_processor               # 民事案由 A 模式候选详情处理器
+    - lua_processor@*zuiming_processor             # 刑法罪名 Z 模式候选详情处理器
+    - lua_processor@*fayuan_processor              # 全国人民法院 F 模式按键处理器
+    - lua_processor@*falv_processor               # 国家法律 G 模式候选详情处理器
+    - lua_processor@*llm_trigger_processor        # 反斜杠触发 AI 预测；不拦截 Tab
     - speller
     - punctuator
     - selector
     - navigator
     - express_editor
   segmentors:
-    - affix_segmentor@english_filter
-    - affix_segmentor@emoji
     - ascii_segmentor                                    # 標識西文段落
     - matcher                                            # 標識符合特定規則的段落，如網址、反查等
+    - affix_segmentor@emoji
+    - affix_segmentor@english_filter
     # - affix_segmentor@wubi98_mint
     - affix_segmentor@radical_reverse_lookup
     - affix_segmentor@stroke
@@ -103,7 +104,6 @@ engine:
     - lua_translator@*lpr                                # LPR 查询与自动更新（lpr+Tab 触发）
     - lua_translator@*anyou                              # 民事案由筛选（a+Tab 触发）
     - lua_translator@*zuiming                            # 刑法罪名筛选（z+Tab 触发）
-    - lua_translator@*legal_search_translator           # 法院/案由/罪名/法律综合检索（f+Tab）
     - lua_translator@*fayuan                             # 全国人民法院筛选（f+Tab 触发）
     - lua_translator@*falv                              # 国家法律文件检索（l+Tab 触发）
     - lua_translator@*date_calculator                    # 日期计算（r+Tab 触发）
@@ -128,27 +128,6 @@ engine:
     - simplifier@transcription_cc
     - lua_filter@*reduce_english_filter          # 将部分英文候选调整到指定位置
     - uniquifier                                 # 去重
-
-# LLM Tab fallback。密钥只从用户环境变量读取，不放入方案文件。
-llm:
-  enabled: true
-  base_url: ""
-  api_key_env: "WEASEL_LLM_API_KEY"
-  model: ""
-  input_scheme: auto
-  context_enabled: true
-  context_chars: 500
-  boundary_search_chars: 100
-  candidate_count: 5
-  timeout_ms: 3000
-  ai_comment:
-    enabled: true
-    text: "✦ AI"
-  cache:
-    enabled: true
-    ttl_seconds: 300
-    max_entries: 500
-  debug_log_context: false
 
 #shijian:仅仅作为提示使用，编码已经写死，引导键可以在key_binder下修改前缀
 #时间：osj 或者 /sj
@@ -241,7 +220,7 @@ emoji:
   dictionary: rime_mint
   enable_user_dict: false
   enable_sentence: false
-  prefix: "B"
+  prefix: "Ob"
   tips: 〔Emoji表情〕
 
 # Lua 配置: 将部分英文候选调整到指定位置。
@@ -504,40 +483,38 @@ punctuator:
 recognizer:
   import_preset: default
   patterns:
-    emoji: "^B[a-z]*'?$"
+    emoji: "^Ob[a-z]*'?$"
     unicode: "^Uc[a-z]*'?$"
-    english_filter: "^E[a-z]*$"
+    english_filter: "^Oe[a-zA-Z]*$"
     url: "^[a-z]+[.].+$"
     punct: "^/([0-9]0?|[a-zA-Z]+)$"
     # wubi98_mint: "Uw[a-z]*'?$"
     stroke: "Ui[a-z]*'?$"
     radical_lookup: "Uu[a-z]*'?$"
-    history: "^H$"                               # h+Tab 输入历史候选
-    calc_or_number: "^V.*$"          # 响应 lua_translator@v_expression_translator（v+Tab 触发）
-    date_calc: "^R.*$"               # 响应 lua_translator@date_calculator（r+Tab 触发）
+    history: ""                                  # 仅 h+Tab 触发
+    calc_or_number: "^V.*$"          # 响应 lua_translator@v_expression_translator（保留大写 V 与 v+Tab 触发）
+    date_calc: "^R.*$"              # 识别完整日期编码；Lua 翻译器仍要求 r/rq+Tab 模式
     rmb: "^[Rr][0-9]+[.]?[0-9]*"     # 金额数字：r12（兼容 R12）
     law_article: "^[Dd][0-9]+[.]?[0-9]*[.]?[0-9]*$"  # d12、d12.3、d12.3.1、d12..1
     law_unit: "^[Dd][0-9]+([vjkxytz]|zh)$"            # 章(v/z/zh)、节(j)、款(k)、项(x)、页(y)、条(t)
     # expression: "^=.*$"              # 已关闭 = 引导表达式计算，保证 = 直接输出              # 响应 lua_translator@expression_translator 脚本将自动获取第 2 个字符作为触发前缀
     gregorian_to_lunar: "^N[0-9]{1,8}"  # 响应 lua_translator@Chinese_lunar_calendar 公历转农历，输入 N20240115 得到「二〇二四年腊月初五」，脚本将自动获取第 2 个字符作为触发前缀
-    lpr: "^L.*$"                     # 响应 lua_translator@lpr（lpr+Tab 触发）
-    anyou: "^A.*$"                   # 响应 lua_translator@anyou（a+Tab 触发）
-    zuiming: "^Z.*$"                 # 响应 lua_translator@zuiming（z+Tab 触发）
-    fayuan: "^F.*$"                  # 响应 lua_translator@fayuan（f+Tab 触发）
-    falv: "^G.*$"                   # 响应 lua_translator@falv（l+Tab 触发）
-    fenshu: "^Ys.*$"                 # 响应 lua_translator@fenshu_translator（ys/yu+Tab 触发）
+    lpr: "^L.*$"                    # 识别完整 LPR 编码；Lua 翻译器仍要求 l/lpr+Tab 模式
+    anyou: ""                        # 仅 a+Tab 触发
+    zuiming: ""                      # 仅 z+Tab 触发
+    fayuan: ""                       # 仅 y/fy+Tab 触发
+    falv: ""                         # 仅 f/fl+Tab 触发
+    fenshu: "^(Ys|ys)[0-9].*$"       # 支持全拼小写直接触发（如 ys4）及 Tab 触发
     uppercase: ""  # 覆写默认的 uppercase 使其可以在输入大写后，输入数字
 
 anyou:
   pinyin_type: quanpin
+  detail_width: 360                 # 案由侧窗；未设置的模式继续使用全局宽度
 
 zuiming:
   pinyin_type: quanpin
 
 fayuan:
-  pinyin_type: quanpin
-
-legal_search:
   pinyin_type: quanpin
 
 falv:
@@ -551,7 +528,7 @@ english_filter:
   enable_completion: true
   enable_user_dict: false
   initial_quality: 2.0
-  prefix: "E"
+  prefix: "Oe"
   tips: 〔英文辅音简写〕
 
 history:
@@ -564,15 +541,16 @@ tab_mode_switches:
   enabled: true
   english: true # e + Tab / Ctrl+Shift+E 英文补全
   e: true       # 兼容旧配置；英文模式由 english 开关控制
-  f: true       # f + Tab / Ctrl+Shift+F 法律综合检索
+  f: true       # f/fl + Tab / Ctrl+Shift+F 法律文件检索
   v: true       # v + Tab 或 V 数字、金额、计算器
   history: true  # h/i + Tab 输入历史与重复上次输出
   b: true       # Emoji 的 b + Tab 入口
   l: false      # 关闭 l + Tab 旧入口
-  z: false      # 关闭 z + Tab 罪名入口
-  a: false      # 关闭 a/ay + Tab 案由入口
-  lpr: false    # 关闭 l/lpr + Tab LPR 入口
-  r: false      # 关闭 r/rq + Tab 日期入口
+  z: true       # z/zm + Tab / Ctrl+Shift+Z 罪名检索
+  a: true       # a/ay + Tab / Ctrl+Shift+A 案由检索
+  y: true       # y/fy + Tab / Ctrl+Shift+Y 法院检索
+  lpr: true     # l/lpr + Tab LPR 入口
+  r: true       # r/rq + Tab 日期入口
   rf: false     # 关闭 rf + Tab 法定顺延入口
   u: true       # u + Tab 拆字入口
   ys: false     # 关闭 ys/yu + Tab 文本份数入口

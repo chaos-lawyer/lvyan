@@ -162,11 +162,44 @@ local function word_matches_aux(env, word, aux_str)
     return false
 end
 
+local function get_word_aux_comment(env, text)
+    if not text or text == "" then return nil end
+    local direct = env.aux_code[text]
+    if direct and #direct > 0 then
+        return direct:gsub(' ', ',')
+    end
+    local len = utf8.len(text)
+    if not len or len <= 1 then return nil end
+
+    local parts = {}
+    for _, cp in utf8.codes(text) do
+        local ch = utf8.char(cp)
+        local c = env.aux_code[ch]
+        if c and #c > 0 then
+            local primary = c:match("%S+")
+            if primary then
+                parts[#parts + 1] = primary:sub(1, 1)
+            end
+        end
+    end
+    if #parts > 0 then
+        return table.concat(parts, "")
+    end
+    return nil
+end
+
 ------------------
 -- filter 主函數 --
 ------------------
 function AuxFilter.func(input, env)
     local context = env.engine.context
+    if context:get_option("name_mode") then
+        for cand in input:iter() do
+            yield(cand)
+        end
+        return
+    end
+
     local inputCode = context.input
     local has_trigger = inputCode:find(env.trigger_key, 1, true) ~= nil
 
@@ -192,11 +225,10 @@ function AuxFilter.func(input, env)
     -- 遍歷每一個待選項
     for cand in input:iter() do
         local current_cand = cand
-        local auxCodes = env.aux_code[current_cand.text] -- 仅单字非 nil
+        local codeComment = showComment and get_word_aux_comment(env, current_cand.text)
 
         -- 给候选项添加辅助码提示
-        if showComment and auxCodes and #auxCodes > 0 then
-            local codeComment = auxCodes:gsub(' ', ',')
+        if codeComment and #codeComment > 0 then
             if current_cand:get_dynamic_type() == "Shadow" then
                 local shadowText = current_cand.text
                 local shadowComment = current_cand.comment or ""
@@ -216,7 +248,7 @@ function AuxFilter.func(input, env)
         if #auxStr == 0 then
             yield(current_cand)
         elseif (current_cand.type == 'user_phrase' or current_cand.type == 'phrase' or
-                current_cand.type == 'simplified') and word_matches_aux(env, current_cand.text, auxStr) then
+                current_cand.type == 'simplified' or current_cand.type == 'name') and word_matches_aux(env, current_cand.text, auxStr) then
             yield(current_cand)
         end
     end

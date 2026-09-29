@@ -6,6 +6,9 @@
 # 双拼之间主要就是 speller/algebra 和 translator/preedit_format 这里有区别。
 
 # 方案说明
+# 引入 RIME-LMDG 万象语法模型配置
+__include: octagram:/octagram
+
 schema:
   schema_id: double_pinyin_flypy
   name: "小鹤双拼-薄荷定制"
@@ -30,18 +33,13 @@ schema:
     - stroke
     - melt_eng          # 英文方案
     - english_abbr      # 英文辅音简写棱镜（复用 melt_eng 词库源）
+    - rime_mint_initials # 纯小鹤首拼词典依赖
+    - rime_mint_all_initials # 纯小鹤全量首拼词典依赖（首拼模式专用）
 
 switches:
   - name: ascii_mode
     reset: 0
     states: [ 中文, 英文 ]
-  - name: name_mode
-    reset: 0
-    states: [ 普通, 人名 ]
-  # 专属 Emoji 滤镜固定开启，由 emoji 标签限定作用范围。
-  - name: emoji_mode_enabled
-    reset: 1
-    states: [ 关闭, 开启 ]
   - name: full_shape
     states: [ 半角, 全角 ]
     reset: 0
@@ -60,30 +58,37 @@ switches:
 
 engine:
   processors:
-    - lua_processor@*tab_mode_hotkey              # Ctrl+Shift+A/Z/F/L/E/B：将当前双拼带入筛选模式
+    - lua_processor@*right_shift_full_shape_processor # 单独点按右 Shift 切换全角/半角
+    - lua_processor@*word_commit_probe            # 临时诊断 Word 选词/上屏与布局状态；不记录正文
+    - lua_processor@*tab_mode_hotkey              # Ctrl+Shift+A/Y/F/Z/E/B：将当前双拼带入筛选模式
     - lua_processor@*candidate_detail_commit_processor # =：将当前侧窗详情正文直接上屏
     - lua_processor@*transcription_hotkey        # Ctrl+Shift+T：切换简繁并消费整个按键序列
     - lua_processor@*name_mode_hotkey            # Ctrl+Shift+M：切换人名模式并消费整个按键序列
     - lua_processor@*auto_update_processor        # 普通输入期间低频维护 LPR 与节假日数据
     - lua_processor@*repeat_history_processor     # 输入历史 (h+Tab) 与 重复上次输出 (i+Tab)
     - lua_processor@*aux_phrase_history_processor # 逐字辅码选词后，学习为基础双拼词组
+    - lua_processor@*user_initials_history_processor # 双拼自造词首拼自学习
     - lua_processor@*tab_prefix_processor         # Tab 引导功能前缀转换（e表情 / u拆字 / r日期 / l利率）
+    - lua_processor@*initials_mode_processor      # 反斜杠 \ 引导纯小鹤首拼模式
+    - lua_processor@*tab_page_aux_processor       # Tab 下一页 / Shift+Tab 上一页，并在翻页时进入辅助码模式
+    - lua_processor@*contacts_processor           # N 通讯录模式选词与实际号码上屏拦截
     - lua_processor@*hot_slot_processor           # 固定候选宏上屏需先于数字选词处理器
     - lua_processor@*kp_number_processor           # 功能前缀后数字参与编码；其他场景仍用于选词
     - lua_processor@*select_character              # 以词定字
     - lua_processor@*codeLengthLimit_processor     # 使用Lua限制输入内容的最大长度(防止过长而卡顿)
+    - lua_processor@*ctrl_syllable_nav_processor   # Ctrl+字母按声母快速定位光标并循环跳转
     - ascii_composer                               # ※ 處理西文模式及中西文切換
     - lua_processor@*date_select_processor         # 先处理模式选词，避免 recognizer 将 a~e 吞作编码
     - lua_processor@*lpr_select_processor          # LPR / V 模式 a~e 选词及运算符
     - recognizer                                   # ※ 與 matcher 搭配，處理符合特定規則的輸入碼，如網址、反查等
     - key_binder                                   # ※ 在特定條件下將按鍵綁定到其他按鍵，如重定義逗號、句號爲候選翻頁鍵
     - lua_processor@*law_select_processor          # d+数字模式下使用 a/b/c/d/e 选词
-    - lua_processor@*anyou_processor               # 民事案由 A 模式动态竖排布局处理器
-    - lua_processor@*zuiming_processor             # 刑法罪名 Z 模式动态竖排布局处理器
-    - lua_processor@*fayuan_processor              # 全国人民法院 F 模式动态竖排布局处理器
-    - lua_processor@*falv_processor               # 国家法律 G 模式动态竖排与候选详情处理器
-    - lua_processor@*legal_search_processor       # 综合检索动态竖排与分类详情
-    - lua_processor@*llm_trigger_processor        # 普通字母输入的 Tab AI 候选 fallback（全部特殊处理器之后）
+    - lua_processor@*layout_manager                # 集中管理候选窗动态横/竖排布局
+    - lua_processor@*anyou_processor               # 民事案由 A 模式候选详情处理器
+    - lua_processor@*zuiming_processor             # 刑法罪名 Z 模式候选详情处理器
+    - lua_processor@*fayuan_processor              # 全国人民法院 F 模式按键处理器
+    - lua_processor@*falv_processor               # 国家法律 G 模式候选详情处理器
+#    - lua_processor@*llm_trigger_processor        # 反斜杠触发 AI 预测；不拦截 Tab
     - speller
     - punctuator
     - selector
@@ -92,6 +97,7 @@ engine:
   segmentors:
     - ascii_segmentor                                    # 標識西文段落
     - matcher                                            # 標識符合特定規則的段落，如網址、反查等
+    - affix_segmentor@initials_mode                      # \ 引导纯首拼模式
     - affix_segmentor@emoji                              # b+Tab / Ctrl+Shift+B 引导 Emoji 模式
     - affix_segmentor@english_filter                     # e+Tab / Ctrl+Shift+E 英文简写模式（E 前缀）
     # - affix_segmentor@wubi98_mint
@@ -106,6 +112,7 @@ engine:
     - lua_translator@*name_translator                    # 人名模式专用翻译器
     - lua_translator@*repeat_history_translator         # 输入历史候选（h+Tab 触发）
     - lua_translator@*aux_phrase_history_translator     # 逐字辅码学习的基础双拼词组
+    - lua_translator@*user_initials_history_translator  # 双拼自造词首拼候选
     - lua_translator@*emoji_initial_translator          # Emoji 表情的小鹤首拼：uuji -> uj
     - script_translator
     - script_translator@emoji
@@ -116,7 +123,6 @@ engine:
     - lua_translator@*lpr                                # LPR 查询与自动更新（lpr+Tab 触发）
     - lua_translator@*anyou                              # 民事案由筛选（a+Tab 触发）
     - lua_translator@*zuiming                            # 刑法罪名筛选（z+Tab 触发）
-    - lua_translator@*legal_search_translator           # 法院/案由/罪名/法律综合检索（f+Tab）
     - lua_translator@*fayuan                             # 全国人民法院筛选（f+Tab 触发）
     - lua_translator@*falv                              # 国家法律文件检索（l+Tab 触发）
     # - lua_translator@*chineseLunarCalendar_translator    # 农历（已禁用，统一由大写R接管）
@@ -124,12 +130,15 @@ engine:
     - table_translator@melt_eng                          # 英文输入（作为子翻译器，优先级需要比原生的低）
     - table_translator@english_filter                    # Ctrl+Shift+E 英文前缀补全
     - table_translator@cn_en                             # 中英混合词汇
+    - table_translator@rime_mint_initials                # 纯小鹤首拼词汇（3~8字）
+    - table_translator@initials_mode                     # 纯小鹤全量首拼模式词汇（2~8字，\ 引导专用）
     - reverse_lookup_translator@radical_reverse_lookup
     # - reverse_lookup_translator@wubi98_mint
     # - reverse_lookup_translator@stroke
     - lua_translator@*force_gc                           # 暴力GC，尝试解决小狼毫长期使用的卡顿
     - lua_translator@*date_calculator                    # 日期计算（r+Tab 触发）
     - lua_translator@*fenshu_translator                   # 文本份数（ys/yu+Tab 触发）
+    - lua_translator@*contacts_translator                 # N 通讯录模式联系人检索（n+Tab / Ctrl+Shift+N 触发）
   filters:
     - lua_filter@*direct_aux                  # 先生成消费完整辅码的筛选词，再统一做拼音显示、简繁转换
     - lua_filter@*corrector_filter            # 错音错字提示
@@ -146,27 +155,6 @@ engine:
     - lua_filter@*reduce_english_filter       # 将部分英文候选调整到指定位置
     - lua_filter@*name_filter                 # 人名模式候选过滤
     - uniquifier                              # 去重
-
-# LLM Tab fallback。密钥只从用户环境变量读取，不放入方案文件。
-llm:
-  enabled: true
-  base_url: ""
-  api_key_env: "WEASEL_LLM_API_KEY"
-  model: ""
-  input_scheme: auto
-  context_enabled: true
-  context_chars: 500
-  boundary_search_chars: 100
-  candidate_count: 5
-  timeout_ms: 3000
-  ai_comment:
-    enabled: true
-    text: "✦ AI"
-  cache:
-    enabled: true
-    ttl_seconds: 300
-    max_entries: 500
-  debug_log_context: false
 
 # 原薄荷输入法内置触发方式已全部禁用（统一由大写 R 模式接管）：
 # - 时间：osj 或者 /sj
@@ -246,14 +234,14 @@ emoji_mode:
   tips: all
   inherit_comment: false
 
-# Emoji 模式分词器配置（内部 B 前缀）
+# Emoji 模式分词器配置（内部 Ob 前缀，通过 b+Tab 触发）
 emoji:
   tag: emoji
   dictionary: rime_mint
   prism: double_pinyin_flypy
   enable_user_dict: false
   enable_sentence: false
-  prefix: "B"
+  prefix: "Ob"
   tips: 〔Emoji表情〕
 
 english_filter:
@@ -263,7 +251,7 @@ english_filter:
   enable_completion: true
   enable_user_dict: false
   initial_quality: 2.0
-  prefix: "E"
+  prefix: "Oe"
   tips: 〔英文辅音简写〕
 # 鹤形拆字辅助滤镜
 chaifen_cc:
@@ -301,8 +289,13 @@ direct_aux:
   max_aux_length: 2
   match_mode: prefix
   candidate_mode: promote
+  shift_first_cand: true        # 输入辅助码时首候选后移（若加辅码后的首选仍与原首选一致，则移至已对应词组末位）
   fallback: normal_input
   show_aux_comment: false
+
+# 双拼音节定位配置
+syllable_nav:
+  target_placement: end         # Ctrl+字母定位光标落点：end 停在目标音节后（便于直接输辅码）；start 停在音节前
 
 
 
@@ -358,6 +351,10 @@ hot_slot_filter:
   deduplicate: true
   enable_comments: false
 
+# 临时 Word 故障诊断；仅在 Word 中记录事件类型、候选类型和长度。
+word_commit_probe:
+  enabled: true
+
 translator:
   # 字典文件
   dictionary: rime_mint          # 使用的字典文件
@@ -392,6 +389,17 @@ cn_en:
   comment_format:
     - xform/^.+$//
 
+# 纯小鹤首拼词典配置（3~8字词组纯首拼，如 cght -> 采购合同，xhup -> 小鹤双拼）
+rime_mint_initials:
+  dictionary: rime_mint_initials
+  prism: rime_mint_initials
+  enable_user_dict: true
+  enable_completion: false
+  enable_sentence: false
+  initial_quality: 0.2
+  comment_format:
+    - "xform/^.*$/〔首拼〕/"
+
 # 人名词库配置（供 name_translator 查询与棱镜双拼解析）
 name_corpus:
   dictionary: name_corpus
@@ -403,7 +411,7 @@ name_corpus:
 # 拼写设定
 speller:
   # 如果不想让什么标点直接上屏，可以加在 alphabet，或者编辑标点符号为两个及以上的映射
-  alphabet: zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA;
+  alphabet: "zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA;\\"
   # initials 定义仅作为始码的按键，排除 ; 让单个的 ; 可以直接上屏
   initials: zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA
   delimiter: " `"  # 第一位<空格>是拼音之间的分隔符；第二位<'>表示可以手动输入单引号来分割拼音。
@@ -442,7 +450,7 @@ speller:
     - xform/ui$/Ⓥ/
     - xform/in$/Ⓑ/
     - xlit/ⓆⓌⓇⓉⓎⓊⒾⓄⓅⓈⒹⒻⒼⒽⒿⓀⓁⓏⓍⒸⓋⒷⓃⓂ/qwrtyuiopsdfghjklzxcvbnm/
-    - abbrev/^(.).+$/$1/  # 首字母简拼，开启后会导致 3 个字母时 kj'x 变成 k'jx 的问题
+    # - abbrev/^(.).+$/$1/  # 首字母简拼，开启后会导致 3 个字母时 kj'x 变成 k'jx 的问题
 
 # wubi98_mint:
 #   tag: wubi98_mint
@@ -502,7 +510,7 @@ punctuator:
     "*": "*"
     ',': { commit: ， }
     '.': { commit: 。 }
-    "`": "`"
+    "`": "·"
     "~": "~"
     "@": "@"
     "=": { commit: "=" }
@@ -531,33 +539,41 @@ unicode:
 recognizer:
   import_preset: default
   patterns:
-    emoji: "^B[a-z]*'?$"
-    english_filter: "^E[a-z]*$"
-    # unicode: "^Uc[a-z]*'?$"
+    initials_mode: "^\\\\.*$"
+    emoji: "^Ob[a-z]*'?$"            # 仅由 b+Tab 触发（内部 Ob 前缀）
+    english_filter: "^Oe[a-zA-Z]*$" # e+Tab 与 Ctrl+Shift+E 共用内部 Oe 前缀
+    unicode: ""
     url: "^[a-z]+[.].+$"
     # punct: "^/([0-9]0?|[a-zA-Z]+)$" # 已关闭 / 引导符号，保证 / 和 | 直接输出
-    # wubi98_mint: "Uw[a-z]*'?$"
-    # stroke: "Ui[a-z]*'?$"
-    radical_lookup: "^U[a-z]*'?$"    # 响应反查（u+Tab 触发）
-    calc_or_number: "^V.*$"          # 响应 lua_translator@v_expression_translator（v+Tab 触发）
-    date_calc: "^R.*$"               # 响应 lua_translator@date_calculator（r+Tab 触发）
-    # rmb: "^[Rr][0-9]+[.]?[0-9]*"     # 已关闭：由 V 模式接管
+    wubi98_mint: ""
+    stroke: ""
+    radical_lookup: "^U[a-z]*'?$"    # 响应反查（保留大写 U 与 u+Tab 触发）
+    calc_or_number: "^V.*$"          # 响应 lua_translator@v_expression_translator（保留大写 V 与 v+Tab 触发）
+    date_calc: "^R.*$"              # 识别完整日期编码；Lua 翻译器仍要求 r/rq+Tab 模式
+    rmb: ""                          # 已关闭：由 V 模式接管
     law_article: "^[Dd][0-9]+[.]?[0-9]*[.]?[0-9]*$"  # d12、d12.3、d12.3.1、d12..1
     law_unit: "^[Dd][0-9]+([vjkxytz]|zh)$"            # 章(v/z/zh)、节(j)、款(k)、项(x)、页(y)、条(t)
-    # expression: "^=.*$"              # 已关闭 = 引导表达式计算，保证 = 直接输出
-    # gregorian_to_lunar: "^N[0-9]{1,8}"  # 已禁用大写N日期公历转农历触发，统一由大写R接管
-    lpr: "^L.*$"                     # 响应 lua_translator@lpr（lpr+Tab 触发）
-    anyou: "^A.*$"                   # 响应 lua_translator@anyou（a+Tab 触发）
-    zuiming: "^Z.*$"                 # 响应 lua_translator@zuiming（z+Tab 触发）
-    fayuan: "^F.*$"                  # 响应 lua_translator@fayuan（f+Tab 触发）
-    falv: "^G.*$"                   # 响应 lua_translator@falv（l+Tab 触发）
-    fenshu: "^Ys.*$"                 # 响应 lua_translator@fenshu_translator（ys/yu+Tab 触发）
-    history: "^H$"                   # 响应 lua_translator@repeat_history_translator（h+Tab 触发）
+    expression: ""                   # 已关闭 = 引导表达式计算，保证 = 直接输出
+    gregorian_to_lunar: ""           # 已禁用大写N日期公历转农历触发，统一由大写R接管
+    lpr: "^L.*$"                    # 识别完整 LPR 编码；Lua 翻译器仍要求 l/lpr+Tab 模式
+    anyou: ""                        # 仅 a/ay+Tab 触发
+    zuiming: ""                      # 仅 z/zm+Tab 触发
+    fayuan: ""                       # 仅 y/fy+Tab 触发
+    falv: ""                         # 仅 f/fl+Tab 触发
+    fenshu: "^(Ys|yu)[0-9].*$"       # 支持小鹤双拼小写直接触发（如 yu4）及 Tab 触发
+    history: ""                      # 仅 h+Tab 触发
+    contacts: ""                     # 仅 n+Tab 触发
     uppercase: ""  # 覆写默认的 uppercase 使其可以在输入大写后，输入数字
+
+contacts:
+  tag: contacts
+  pinyin_type: flypy
+  tips: 〔通讯录〕
 
 anyou:
   tag: anyou
   pinyin_type: flypy
+  detail_width: 280                 # 案由侧窗；未设置的模式继续使用全局宽度
   tips: 〔民事案由筛选〕
 
 zuiming:
@@ -570,15 +586,10 @@ fayuan:
   pinyin_type: flypy
   tips: 〔人民法院筛选〕
 
-legal_search:
-  tag: legal_search
-  pinyin_type: flypy
-  tips: 〔法院·案由·罪名·法律综合检索〕
-
 falv:
   tag: falv
   pinyin_type: flypy
-  detail_width: 360                 # 法律查询侧窗；未设置的模式继续使用全局宽度
+  detail_width: 240                 # 法律查询侧窗；未设置的模式继续使用全局宽度
   tips: 〔法律文件检索〕
 
 lpr:
@@ -591,18 +602,20 @@ tab_mode_switches:
   enabled: true
   english: true # e + Tab / Ctrl+Shift+E 英文补全
   e: true       # 兼容旧配置；英文模式由 english 开关控制
-  f: true       # f + Tab / Ctrl+Shift+F 法律综合检索
+  f: true       # f/fl + Tab / Ctrl+Shift+F 法律文件检索
   v: true       # v + Tab 或 V 数字、金额、计算器
   history: true  # h/i + Tab 输入历史与重复上次输出
   b: true       # Emoji 的 b + Tab 入口
-  l: false      # 关闭 l + Tab 旧入口
-  z: false      # 关闭 z + Tab 罪名入口
-  a: false      # 关闭 a/ay + Tab 案由入口
-  lpr: false    # 关闭 l/lpr + Tab LPR 入口
-  r: false      # 关闭 r/rq + Tab 日期入口
+  z: true       # z/zm + Tab / Ctrl+Shift+Z 罪名检索
+  a: true       # a/ay + Tab / Ctrl+Shift+A 案由检索
+  y: true       # y/fy + Tab / Ctrl+Shift+Y 法院检索
+  lpr: true     # l/lpr + Tab LPR 入口
+  r: true       # r/rq + Tab 日期入口
   rf: false     # 关闭 rf + Tab 法定顺延入口
   u: true       # u + Tab 拆字入口
   ys: false     # 关闭 ys/yu + Tab 文本份数入口
+  contacts: true # n + Tab / Ctrl+Shift+N 通讯录模式
+  n: true
 
 # 候选窗默认显示实际键入的触发码；如需自定义，可按触发码覆盖：
 # tab_mode_display:
@@ -625,7 +638,7 @@ history:
 key_binder:
   import_preset: default
   # Lua 配置: shijian.lua 的引导符（已禁用）
-  # shijian_keys: ["o"]
+  shijian_keys: []
   bindings:
     # Ctrl+Shift+T 由 transcription_hotkey 统一处理，避免重复切换和抬键泄漏。
     # Ctrl+Shift+M 由 name_mode_hotkey 统一处理，避免重复切换和抬键泄漏。
@@ -639,3 +652,31 @@ key_binder:
 menu:
   # 候选词个数
   page_size: 5
+
+# 布局感知的候选词导航与翻页（方案级回退保障）
+dynamic_layout:
+  navigation:
+    enabled: true
+    horizontal:
+      previous_candidate: Control+Left
+      next_candidate: Control+Right
+      previous_page: Up
+      next_page: Down
+    vertical:
+      previous_candidate: Up
+      next_candidate: Down
+      previous_page: Control+Left
+      next_page: Control+Right
+
+# 纯小鹤全量首拼模式配置（反斜杠 \ 引导，包含2~8字首拼）
+initials_mode:
+  tag: initials_mode
+  dictionary: rime_mint_all_initials
+  enable_user_dict: true
+  enable_completion: false
+  enable_sentence: false
+  initial_quality: 100.0
+  prefix: "\\"
+  tips: "〔首拼〕"
+  comment_format:
+    - "xform/^.*$/〔首拼〕/"

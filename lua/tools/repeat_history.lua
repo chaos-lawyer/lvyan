@@ -4,10 +4,9 @@
 
   功能特性：
   1. h + Tab:
-     - 调出最近 10 条输入历史记录（按最近输入倒序排列）；
-     - 使用原生候选窗口展示：文本为候选内容，编码为注释；
-     - 选择某条历史记录后，不直接输出该文本，而是将原始编码恢复注入输入框，
-       重新唤起原生候选，完全兼容直接辅助码及后续拼写筛选；
+     - 撤销刚刚的输入（通知前端通过 Ctrl+Z 撤回上屏文本）；
+     - 重新将上一个有效输入的拼音编码注入输入框，直接展示原生候选，不上屏；
+     - 方便配合辅码、翻页重新选词或编辑拼写；
      - 仅在 context.input == "h" 并按 Tab 时触发，普通 h 开头的输入完全不受影响。
   2. i + Tab:
      - 直接重复输出最近一次正常输入的文本 (last_text)；
@@ -179,16 +178,24 @@ function M.processor.func(key, env)
   local history_tab_enabled = true
   if env.engine.schema and env.engine.schema.config then
     local configured = env.engine.schema.config:get_bool("tab_mode_switches/history")
+    if configured == nil then
+      configured = env.engine.schema.config:get_bool("tab_mode_switches/h")
+    end
     if configured ~= nil then history_tab_enabled = configured end
   end
   if history_tab_enabled and repr == "Tab"
       and not (key:ctrl() or key:alt() or key:super()) then
-    -- h + Tab: 仅当当前 composition 只有 "h" 时触发
+    -- h + Tab: 撤销刚刚的输入，并重新键入上一个编码，展示候选项，但不上屏
     if inp == "h" then
       context:clear()
-      context:set_property("tab_mode", "history")
-      context:push_input("H")
-      return kAccepted
+      if #M.history > 0 and M.history[1].code and M.history[1].code ~= "" then
+        local code_to_restore = M.history[1].code
+        context:set_property("undo_action", "ctrl_z")
+        context:push_input(code_to_restore)
+        return kAccepted
+      else
+        return kAccepted
+      end
     -- i + Tab: 仅当当前 composition 只有 "i" 时触发
     elseif inp == "i" then
       context:clear()
